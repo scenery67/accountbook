@@ -3,6 +3,7 @@ import type { CategoryRecord, TransactionDraft, TransactionType } from "../types
 interface TransactionFormProps {
   draft: TransactionDraft;
   categories: CategoryRecord[];
+  availableTags: string[];
   disabled: boolean;
   isEditing: boolean;
   labels: {
@@ -13,7 +14,10 @@ interface TransactionFormProps {
     date: string;
     type: string;
     amount: string;
+    amountHelp: string;
     category: string;
+    tags: string;
+    tagsHelp: string;
     payment: string;
     memo: string;
     paymentPlaceholder: string;
@@ -31,6 +35,7 @@ interface TransactionFormProps {
 export function TransactionForm({
   draft,
   categories,
+  availableTags,
   disabled,
   isEditing,
   labels,
@@ -51,6 +56,14 @@ export function TransactionForm({
       ...draft,
       type,
       category: currentStillValid ? draft.category : nextCategories[0]?.name ?? "",
+    });
+  };
+
+  const toggleTag = (tag: string) => {
+    const exists = draft.tags.includes(tag);
+    onChange({
+      ...draft,
+      tags: exists ? draft.tags.filter((entry) => entry !== tag) : [...draft.tags, tag],
     });
   };
 
@@ -92,11 +105,12 @@ export function TransactionForm({
           <input
             type="number"
             min="0"
-            step="1"
+            step="0.1"
             value={draft.amount}
             onChange={(event) => onChange({ ...draft, amount: event.target.value })}
             required
           />
+          <span className="field-hint">{labels.amountHelp}</span>
         </label>
         <label>
           <span className="field-label">{labels.category}</span>
@@ -111,6 +125,26 @@ export function TransactionForm({
             ))}
           </select>
         </label>
+        <div className="full-span">
+          <span className="field-label">{labels.tags}</span>
+          <div className="tag-picker">
+            {availableTags.length === 0 ? (
+              <span className="muted">{labels.tagsHelp}</span>
+            ) : (
+              availableTags.map((tag) => (
+                <button
+                  key={tag}
+                  className={`tag-chip ${draft.tags.includes(tag) ? "tag-chip-active" : ""}`}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                >
+                  {tag}
+                </button>
+              ))
+            )}
+          </div>
+          <span className="field-hint">{labels.tagsHelp}</span>
+        </div>
         <label>
           <span className="field-label">{labels.payment}</span>
           <input

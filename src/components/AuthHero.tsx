@@ -15,6 +15,7 @@ interface AuthHeroProps {
   signOutLabel: string;
   authLoadingLabel: string;
   signedInAsLabel: string;
+  extraActions?: React.ReactNode;
   onLogin: () => void;
   onLogout: () => void;
 }
@@ -36,6 +37,7 @@ export function AuthHero({
   signOutLabel,
   authLoadingLabel,
   signedInAsLabel,
+  extraActions,
   onLogin,
   onLogout,
 }: AuthHeroProps) {
@@ -47,6 +49,7 @@ export function AuthHero({
         <p className="hero-copy">{copy}</p>
       </div>
       <div className="hero-actions">
+        {extraActions}
         <label className="language-select">
           <span className="field-label">{languageLabel}</span>
           <select value={currentLocale} onChange={(event) => onLocaleChange(event.target.value as "ko" | "en")}>

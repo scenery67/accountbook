@@ -9,6 +9,7 @@ export interface TransactionRecord {
   type: TransactionType;
   amount: number;
   category: string;
+  tags: string[];
   memo: string;
   paymentMethod: string;
   createdAt: string;
@@ -28,11 +29,22 @@ export interface CategoryRecord {
   rowNumber: number;
 }
 
+export interface TagRecord {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: string;
+  enabled: boolean;
+  deletedAt: string;
+  rowNumber: number;
+}
+
 export interface FiltersState {
   preset: PeriodPreset;
   startDate: string;
   endDate: string;
   paymentMethod: string;
+  tag: string;
   keyword: string;
 }
 
@@ -42,6 +54,7 @@ export interface TransactionDraft {
   type: TransactionType;
   amount: string;
   category: string;
+  tags: string[];
   memo: string;
   paymentMethod: string;
 }
@@ -49,6 +62,11 @@ export interface TransactionDraft {
 export interface CategoryDraft {
   name: string;
   type: CategoryType;
+  color: string;
+}
+
+export interface TagDraft {
+  name: string;
   color: string;
 }
 
@@ -63,6 +81,14 @@ export interface CategoryAggregate {
   key: string;
   type: TransactionType;
   category: string;
+  total: number;
+  color: string;
+}
+
+export interface TagAggregate {
+  key: string;
+  type: TransactionType;
+  tag: string;
   total: number;
   color: string;
 }

@@ -1,10 +1,12 @@
 import { appConfig } from "./config";
 import { isoNow } from "./date";
+import { parseManwonInputToWon } from "./format";
 import type {
   CategoryRecord,
   FiltersState,
   GoogleUserProfile,
   LocaleCode,
+  TagRecord,
   TransactionDraft,
   TransactionRecord,
   TransactionType,
@@ -46,6 +48,7 @@ export const SHEETS = {
       "type",
       "amount",
       "category",
+      "tags",
       "memo",
       "payment_method",
       "created_at",
@@ -56,6 +59,10 @@ export const SHEETS = {
   categories: {
     title: "Categories",
     headers: ["id", "name", "type", "color", "sort_order", "enabled", "deleted_at"],
+  },
+  tags: {
+    title: "Tags",
+    headers: ["id", "name", "color", "sort_order", "enabled", "deleted_at"],
   },
   settings: {
     title: "Settings",
@@ -96,6 +103,7 @@ export interface SpreadsheetMeta {
 export interface WorkbookData {
   transactions: TransactionRecord[];
   categories: CategoryRecord[];
+  tags: TagRecord[];
 }
 
 export async function loadGoogleIdentityScript(): Promise<void> {
@@ -221,9 +229,10 @@ export async function loadWorkbookData(
   accessToken: string,
   spreadsheetId: string
 ): Promise<WorkbookData> {
-  const [transactionRows, categoryRows] = await Promise.all([
-    getSheetValues(accessToken, spreadsheetId, `${SHEETS.transactions.title}!A2:J`),
+  const [transactionRows, categoryRows, tagRows] = await Promise.all([
+    getSheetValues(accessToken, spreadsheetId, `${SHEETS.transactions.title}!A2:K`),
     getSheetValues(accessToken, spreadsheetId, `${SHEETS.categories.title}!A2:G`),
+    getSheetValues(accessToken, spreadsheetId, `${SHEETS.tags.title}!A2:F`),
   ]);
 
   return {
@@ -233,6 +242,10 @@ export async function loadWorkbookData(
     categories: categoryRows
       .map((row, index) => mapCategoryRow(row, index + 2))
       .filter((category) => category.enabled && !category.deletedAt)
+      .sort((left, right) => Number(left.sortOrder || 999) - Number(right.sortOrder || 999)),
+    tags: tagRows
+      .map((row, index) => mapTagRow(row, index + 2))
+      .filter((tag) => tag.enabled && !tag.deletedAt)
       .sort((left, right) => Number(left.sortOrder || 999) - Number(right.sortOrder || 999)),
   };
 }
@@ -244,13 +257,14 @@ export async function saveTransaction(
   existingTransaction?: TransactionRecord | null
 ): Promise<void> {
   const now = isoNow();
-  const amount = Number(draft.amount);
+  const amount = parseManwonInputToWon(draft.amount);
   const rowValues = [
     draft.id || crypto.randomUUID(),
     draft.date,
     draft.type,
     amount.toString(),
     draft.category,
+    serializeTags(draft.tags),
     draft.memo.trim(),
     draft.paymentMethod.trim(),
     existingTransaction?.createdAt ?? now,
@@ -262,7 +276,7 @@ export async function saveTransaction(
     await updateSheetRow(
       accessToken,
       spreadsheetId,
-      `${SHEETS.transactions.title}!A${existingTransaction.rowNumber}:J${existingTransaction.rowNumber}`,
+      `${SHEETS.transactions.title}!A${existingTransaction.rowNumber}:K${existingTransaction.rowNumber}`,
       rowValues
     );
     return;
@@ -280,13 +294,14 @@ export async function softDeleteTransaction(
   await updateSheetRow(
     accessToken,
     spreadsheetId,
-    `${SHEETS.transactions.title}!A${transaction.rowNumber}:J${transaction.rowNumber}`,
+      `${SHEETS.transactions.title}!A${transaction.rowNumber}:K${transaction.rowNumber}`,
     [
       transaction.id,
       transaction.date,
       transaction.type,
       transaction.amount.toString(),
       transaction.category,
+      serializeTags(transaction.tags),
       transaction.memo,
       transaction.paymentMethod,
       transaction.createdAt,
@@ -317,6 +332,26 @@ export async function createCategory(
   ]);
 }
 
+export async function createTag(
+  accessToken: string,
+  spreadsheetId: string,
+  tag: { name: string; color: string },
+  tags: TagRecord[]
+): Promise<void> {
+  const nextSort = tags.length
+    ? Math.max(...tags.map((entry) => Number(entry.sortOrder || 0))) + 10
+    : 10;
+
+  await appendSheetRow(accessToken, spreadsheetId, `${SHEETS.tags.title}!A2`, [
+    crypto.randomUUID(),
+    tag.name.trim(),
+    tag.color,
+    nextSort.toString(),
+    "TRUE",
+    "",
+  ]);
+}
+
 export async function disableCategory(
   accessToken: string,
   spreadsheetId: string,
@@ -330,6 +365,19 @@ export async function disableCategory(
   );
 }
 
+export async function disableTag(
+  accessToken: string,
+  spreadsheetId: string,
+  tag: TagRecord
+): Promise<void> {
+  await updateSheetRow(
+    accessToken,
+    spreadsheetId,
+    `${SHEETS.tags.title}!A${tag.rowNumber}:F${tag.rowNumber}`,
+    [tag.id, tag.name, tag.color, tag.sortOrder, "FALSE", isoNow()]
+  );
+}
+
 export function filterTransactions(
   transactions: TransactionRecord[],
   filters: FiltersState
@@ -340,11 +388,12 @@ export function filterTransactions(
       (!filters.endDate || transaction.date <= filters.endDate);
     const matchesPayment =
       !filters.paymentMethod || transaction.paymentMethod === filters.paymentMethod;
+    const matchesTag = !filters.tag || transaction.tags.includes(filters.tag);
     const queryTarget =
-      `${transaction.memo} ${transaction.category} ${transaction.paymentMethod}`.toLowerCase();
+      `${transaction.memo} ${transaction.category} ${transaction.paymentMethod} ${transaction.tags.join(" ")}`.toLowerCase();
     const matchesKeyword =
       !filters.keyword || queryTarget.includes(filters.keyword.trim().toLowerCase());
-    return matchesDate && matchesPayment && matchesKeyword;
+    return matchesDate && matchesPayment && matchesTag && matchesKeyword;
   });
 }
 
@@ -573,11 +622,12 @@ function mapTransactionRow(row: string[], rowNumber: number): TransactionRecord 
     type: (row[2] as TransactionType) ?? "expense",
     amount: Number(row[3] ?? 0),
     category: row[4] ?? "",
-    memo: row[5] ?? "",
-    paymentMethod: row[6] ?? "",
-    createdAt: row[7] ?? "",
-    updatedAt: row[8] ?? "",
-    deletedAt: row[9] ?? "",
+    tags: parseTags(row[5] ?? ""),
+    memo: row[6] ?? "",
+    paymentMethod: row[7] ?? "",
+    createdAt: row[8] ?? "",
+    updatedAt: row[9] ?? "",
+    deletedAt: row[10] ?? "",
     rowNumber,
   };
 }
@@ -595,10 +645,30 @@ function mapCategoryRow(row: string[], rowNumber: number): CategoryRecord {
   };
 }
 
+function mapTagRow(row: string[], rowNumber: number): TagRecord {
+  return {
+    id: row[0] ?? "",
+    name: row[1] ?? "",
+    color: row[2] ?? "#5476d8",
+    sortOrder: row[3] ?? "999",
+    enabled: (row[4] ?? "TRUE").toUpperCase() === "TRUE",
+    deletedAt: row[5] ?? "",
+    rowNumber,
+  };
+}
+
 function encodeRange(value: string): string {
   return encodeURIComponent(value);
 }
 
 function spreadsheetLink(spreadsheetId: string): string {
   return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`;
+}
+
+function parseTags(value: string): string[] {
+  return value.split(",").map((entry) => entry.trim()).filter(Boolean);
+}
+
+function serializeTags(tags: string[]): string {
+  return [...new Set(tags.map((entry) => entry.trim()).filter(Boolean))].join(", ");
 }

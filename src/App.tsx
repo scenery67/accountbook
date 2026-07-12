@@ -6,6 +6,7 @@ import { FiltersBar } from "./components/FiltersBar";
 import { SheetPanel } from "./components/SheetPanel";
 import { SummaryCards } from "./components/SummaryCards";
 import { Toast } from "./components/Toast";
+import { TagManager } from "./components/TagManager";
 import { TransactionForm } from "./components/TransactionForm";
 import { TransactionTable } from "./components/TransactionTable";
 import { appConfig } from "./lib/config";
@@ -14,8 +15,10 @@ import {
   PAYMENT_METHOD_PRESETS,
   STORAGE_KEYS,
   createCategory,
+  createTag,
   createWorkbook,
   disableCategory,
+  disableTag,
   fetchGoogleUserProfile,
   filterTransactions,
   getGoogleTokenClient,
@@ -26,7 +29,7 @@ import {
   saveTransaction,
   softDeleteTransaction,
 } from "./lib/googleSheets";
-import { formatCurrency } from "./lib/format";
+import { formatCurrency, formatWonToManwonInput, parseManwonInputToWon } from "./lib/format";
 import { getMessage } from "./i18n";
 import type {
   CategoryAggregate,
@@ -35,6 +38,9 @@ import type {
   FiltersState,
   LocaleCode,
   SummaryTotals,
+  TagAggregate,
+  TagDraft,
+  TagRecord,
   TransactionDraft,
   TransactionRecord,
   GoogleUserProfile,
@@ -47,6 +53,7 @@ const initialFilters = (): FiltersState => {
     startDate: range.startDate,
     endDate: range.endDate,
     paymentMethod: "",
+    tag: "",
     keyword: "",
   };
 };
@@ -57,7 +64,13 @@ const initialCategoryDraft: CategoryDraft = {
   color: "#fa7b55",
 };
 
+const initialTagDraft: TagDraft = {
+  name: "",
+  color: "#5476d8",
+};
+
 const LOCALE_STORAGE_KEY = "accountbook.locale";
+type AppTab = "input" | "transactions" | "settings";
 
 function createInitialTransactionDraft(categories: CategoryRecord[] = []): TransactionDraft {
   return {
@@ -66,6 +79,7 @@ function createInitialTransactionDraft(categories: CategoryRecord[] = []): Trans
     type: "expense",
     amount: "",
     category: categories.find((entry) => entry.type === "expense" || entry.type === "both")?.name ?? "",
+    tags: [],
     memo: "",
     paymentMethod: "",
   };
@@ -84,13 +98,17 @@ export default function App() {
   const [spreadsheetTitle, setSpreadsheetTitle] = useState("");
   const [spreadsheetUrl, setSpreadsheetUrl] = useState("");
   const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [tags, setTags] = useState<TagRecord[]>([]);
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [filters, setFilters] = useState<FiltersState>(initialFilters);
   const [transactionDraft, setTransactionDraft] = useState<TransactionDraft>(createInitialTransactionDraft());
   const [categoryDraft, setCategoryDraft] = useState<CategoryDraft>(initialCategoryDraft);
+  const [tagDraft, setTagDraft] = useState<TagDraft>(initialTagDraft);
   const [editingTransactionId, setEditingTransactionId] = useState("");
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
   const [toastMessage, setToastMessage] = useState("");
+  const [activeTab, setActiveTab] = useState<AppTab>("input");
+  const [isSheetMenuOpen, setIsSheetMenuOpen] = useState(false);
   const tokenClientRef = useRef<ReturnType<typeof getGoogleTokenClient> | null>(null);
   const t = (key: string) => getMessage(locale, key);
 
@@ -183,6 +201,8 @@ export default function App() {
     return [...values].sort((left, right) => left.localeCompare(right));
   }, [transactions]);
 
+  const tagNames = useMemo(() => tags.map((entry) => entry.name), [tags]);
+
   const totals = useMemo<SummaryTotals>(() => {
     const income = filteredTransactions
       .filter((entry) => entry.type === "income")
@@ -215,6 +235,25 @@ export default function App() {
     return [...aggregate.values()].sort((left, right) => right.total - left.total);
   }, [categories, filteredTransactions]);
 
+  const tagTotals = useMemo<TagAggregate[]>(() => {
+    const aggregate = new Map<string, TagAggregate>();
+    filteredTransactions.forEach((transaction) => {
+      transaction.tags.forEach((tag) => {
+        const key = `${transaction.type}:${tag}`;
+        const current = aggregate.get(key) ?? {
+          key,
+          type: transaction.type,
+          tag,
+          total: 0,
+          color: tags.find((entry) => entry.name === tag)?.color ?? "#5476d8",
+        };
+        current.total += transaction.amount;
+        aggregate.set(key, current);
+      });
+    });
+    return [...aggregate.values()].sort((left, right) => right.total - left.total);
+  }, [filteredTransactions, tags]);
+
   const isAuthenticated = Boolean(accessToken);
   const isConnected = Boolean(accessToken && spreadsheetId);
   const canSaveTransaction = isConnected && categories.length > 0;
@@ -229,6 +268,7 @@ export default function App() {
     const workbook = await loadWorkbookData(accessToken, currentSpreadsheetId);
     setTransactions(workbook.transactions);
     setCategories(workbook.categories);
+    setTags(workbook.tags);
     setLastSyncAt(new Date());
     setTransactionDraft((current) => {
       if (current.id) {
@@ -292,6 +332,7 @@ export default function App() {
     setUserProfile(null);
     setTransactions([]);
     setCategories([]);
+    setTags([]);
     setEditingTransactionId("");
     setTransactionDraft(createInitialTransactionDraft());
     setLastSyncAt(null);
@@ -304,6 +345,10 @@ export default function App() {
       return;
     }
     if (!transactionDraft.date || !transactionDraft.amount || !transactionDraft.category) {
+      setToastMessage(t("toast.requiredTransaction"));
+      return;
+    }
+    if (!Number.isFinite(parseManwonInputToWon(transactionDraft.amount))) {
       setToastMessage(t("toast.requiredTransaction"));
       return;
     }
@@ -378,8 +423,9 @@ export default function App() {
       id: transaction.id,
       date: transaction.date,
       type: transaction.type,
-      amount: String(transaction.amount),
+      amount: formatWonToManwonInput(transaction.amount),
       category: transaction.category,
+      tags: transaction.tags,
       memo: transaction.memo,
       paymentMethod: transaction.paymentMethod,
     });
@@ -411,16 +457,63 @@ export default function App() {
     setTransactionDraft(createInitialTransactionDraft(categories));
   }
 
+  async function handleCreateTag(): Promise<void> {
+    if (!accessToken || !spreadsheetId) {
+      setToastMessage(t("toast.signInFirst"));
+      return;
+    }
+    if (!tagDraft.name.trim()) {
+      setToastMessage(t("toast.tagNameRequired"));
+      return;
+    }
+    if (tags.some((entry) => entry.name.toLowerCase() === tagDraft.name.trim().toLowerCase())) {
+      setToastMessage(t("toast.tagDuplicate"));
+      return;
+    }
+
+    try {
+      await createTag(accessToken, spreadsheetId, tagDraft, tags);
+      await refreshWorkbookData();
+      setTagDraft(initialTagDraft);
+      setToastMessage(t("toast.tagAdded"));
+    } catch (error) {
+      setToastMessage(error instanceof Error ? error.message : t("toast.tagAddFailed"));
+    }
+  }
+
+  async function handleDisableTag(tagId: string): Promise<void> {
+    if (!accessToken || !spreadsheetId) {
+      return;
+    }
+    const tag = tags.find((entry) => entry.id === tagId);
+    if (!tag) {
+      return;
+    }
+
+    try {
+      await disableTag(accessToken, spreadsheetId, tag);
+      await refreshWorkbookData();
+      setTransactionDraft((current) => ({
+        ...current,
+        tags: current.tags.filter((entry) => entry !== tag.name),
+      }));
+      setToastMessage(t("toast.tagDisabled"));
+    } catch (error) {
+      setToastMessage(error instanceof Error ? error.message : t("toast.tagDisableFailed"));
+    }
+  }
+
   function handleExport(): void {
     if (filteredTransactions.length === 0) {
       setToastMessage(t("toast.exportEmpty"));
       return;
     }
-    const header = ["date", "type", "category", "payment_method", "memo", "amount"];
+    const header = ["date", "type", "category", "tags", "payment_method", "memo", "amount"];
     const body = filteredTransactions.map((transaction) => [
       transaction.date,
       transaction.type,
       transaction.category,
+      transaction.tags.join(", "),
       transaction.paymentMethod,
       transaction.memo,
       String(transaction.amount),
@@ -458,32 +551,45 @@ export default function App() {
         signOutLabel={t("auth.signOut")}
         authLoadingLabel={t("auth.loading")}
         signedInAsLabel={t("auth.signedInAs")}
+        extraActions={
+          <div className="sheet-menu-wrap">
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => setIsSheetMenuOpen((current) => !current)}
+            >
+              {t("sheet.manage")}
+            </button>
+            {isSheetMenuOpen ? (
+              <div className="sheet-dropdown">
+                <SheetPanel
+                  isAuthenticated={isAuthenticated}
+                  isConnected={isConnected}
+                  spreadsheetTitle={spreadsheetTitle || spreadsheetId}
+                  spreadsheetUrl={spreadsheetUrl}
+                  lastSyncLabel={lastSyncLabel}
+                  title={t("sheet.title")}
+                  subtitle={t("sheet.subtitle")}
+                  connectedLabel={t("sheet.connected")}
+                  disconnectedLabel={t("sheet.disconnected")}
+                  createLabel={t("sheet.create")}
+                  connectLabel={t("sheet.connect")}
+                  inputLabel={t("sheet.inputLabel")}
+                  currentLabel={t("sheet.current")}
+                  noneLabel={t("sheet.none")}
+                  lastSyncTextLabel={t("sheet.lastSync")}
+                  onCreate={() => void handleCreateWorkbook()}
+                  onConnect={(nextSpreadsheetId) => void connectWorkbook(nextSpreadsheetId)}
+                />
+              </div>
+            ) : null}
+          </div>
+        }
         onLogin={handleLogin}
         onLogout={handleLogout}
       />
 
-
-      <main className="layout">
-        <SheetPanel
-          isAuthenticated={isAuthenticated}
-          isConnected={isConnected}
-          spreadsheetTitle={spreadsheetTitle || spreadsheetId}
-          spreadsheetUrl={spreadsheetUrl}
-          lastSyncLabel={lastSyncLabel}
-          title={t("sheet.title")}
-          subtitle={t("sheet.subtitle")}
-          connectedLabel={t("sheet.connected")}
-          disconnectedLabel={t("sheet.disconnected")}
-          createLabel={t("sheet.create")}
-          connectLabel={t("sheet.connect")}
-          inputLabel={t("sheet.inputLabel")}
-          currentLabel={t("sheet.current")}
-          noneLabel={t("sheet.none")}
-          lastSyncTextLabel={t("sheet.lastSync")}
-          onCreate={() => void handleCreateWorkbook()}
-          onConnect={(nextSpreadsheetId) => void connectWorkbook(nextSpreadsheetId)}
-        />
-
+      <main className="app-stack">
         <section className="dashboard-grid">
           <section className="panel summary-panel">
             <div className="panel-header">
@@ -508,6 +614,7 @@ export default function App() {
                 start: t("filters.start"),
                 end: t("filters.end"),
                 payment: t("filters.payment"),
+                tag: t("filters.tag"),
                 keyword: t("filters.keyword"),
                 keywordPlaceholder: t("filters.keywordPlaceholder"),
                 all: t("filters.all"),
@@ -516,6 +623,7 @@ export default function App() {
                 last30: t("filters.last30"),
                 custom: t("filters.custom"),
               }}
+              tagOptions={tagNames}
               onChange={setFilters}
             />
             <SummaryCards
@@ -531,57 +639,6 @@ export default function App() {
             />
           </section>
 
-          <TransactionForm
-            draft={transactionDraft}
-            categories={categories}
-            disabled={!canSaveTransaction}
-            isEditing={Boolean(editingTransactionId)}
-            labels={{
-              title: t("transaction.title"),
-              subtitle: t("transaction.subtitle"),
-              editing: t("transaction.editing"),
-              new: t("transaction.new"),
-              date: t("transaction.date"),
-              type: t("transaction.type"),
-              amount: t("transaction.amount"),
-              category: t("transaction.category"),
-              payment: t("transaction.payment"),
-              memo: t("transaction.memo"),
-              paymentPlaceholder: t("transaction.paymentPlaceholder"),
-              memoPlaceholder: t("transaction.memoPlaceholder"),
-              save: t("transaction.save"),
-              reset: t("transaction.reset"),
-              expense: t("type.expense"),
-              income: t("type.income"),
-            }}
-            onChange={setTransactionDraft}
-            onSubmit={() => void handleSaveTransaction()}
-            onReset={resetTransactionDraft}
-          />
-
-          <CategoryManager
-            draft={categoryDraft}
-            categories={categories}
-            disabled={!canManageCategories}
-            labels={{
-              title: t("category.title"),
-              subtitle: t("category.subtitle"),
-              name: t("category.name"),
-              type: t("transaction.type"),
-              color: t("category.color"),
-              add: t("category.add"),
-              none: t("category.none"),
-              disable: t("category.disable"),
-              sort: t("category.sort"),
-              expense: t("type.expense"),
-              income: t("type.income"),
-              both: t("type.both"),
-            }}
-            onChange={setCategoryDraft}
-            onSubmit={() => void handleCreateCategory()}
-            onDisable={(categoryId) => void handleDisableCategory(categoryId)}
-          />
-
           <CategorySummary
             entries={categoryTotals}
             locale={activeLocale}
@@ -593,32 +650,157 @@ export default function App() {
             }}
           />
 
-          <TransactionTable
-            transactions={filteredTransactions}
+          <CategorySummary
+            entries={tagTotals.map((entry) => ({
+              key: entry.key,
+              type: entry.type,
+              category: entry.tag,
+              total: entry.total,
+              color: entry.color,
+            }))}
             locale={activeLocale}
             currency={appConfig.currency}
             labels={{
-              title: t("table.title"),
-              subtitle: t("table.subtitle"),
-              export: t("table.export"),
-              date: t("table.date"),
-              type: t("table.type"),
-              category: t("table.category"),
-              payment: t("table.payment"),
-              memo: t("table.memo"),
-              amount: t("table.amount"),
-              actions: t("table.actions"),
-              empty: t("table.empty"),
-              edit: t("table.edit"),
-              delete: t("table.delete"),
-              income: t("type.income"),
-              expense: t("type.expense"),
+              title: t("tag.summaryTitle"),
+              subtitle: t("tag.summarySubtitle"),
+              empty: t("tag.summaryEmpty"),
             }}
-            onEdit={handleEditTransaction}
-            onDelete={(transactionId) => void handleDeleteTransaction(transactionId)}
-            onExport={handleExport}
-            exportDisabled={filteredTransactions.length === 0}
           />
+        </section>
+
+        <section className="panel tab-panel">
+          <div className="tab-bar">
+            <button
+              className={`tab-button ${activeTab === "input" ? "tab-button-active" : ""}`}
+              type="button"
+              onClick={() => setActiveTab("input")}
+            >
+              {t("tabs.input")}
+            </button>
+            <button
+              className={`tab-button ${activeTab === "transactions" ? "tab-button-active" : ""}`}
+              type="button"
+              onClick={() => setActiveTab("transactions")}
+            >
+              {t("tabs.transactions")}
+            </button>
+            <button
+              className={`tab-button ${activeTab === "settings" ? "tab-button-active" : ""}`}
+              type="button"
+              onClick={() => setActiveTab("settings")}
+            >
+              {t("tabs.settings")}
+            </button>
+          </div>
+
+          {activeTab === "input" ? (
+            <TransactionForm
+              draft={transactionDraft}
+              categories={categories}
+              availableTags={tagNames}
+              disabled={!canSaveTransaction}
+              isEditing={Boolean(editingTransactionId)}
+              labels={{
+                title: t("transaction.title"),
+                subtitle: t("transaction.subtitle"),
+                editing: t("transaction.editing"),
+                new: t("transaction.new"),
+                date: t("transaction.date"),
+                type: t("transaction.type"),
+                amount: t("transaction.amount"),
+                amountHelp: t("transaction.amountHelp"),
+                category: t("transaction.category"),
+                tags: t("transaction.tags"),
+                tagsHelp: t("transaction.tagsHelp"),
+                payment: t("transaction.payment"),
+                memo: t("transaction.memo"),
+                paymentPlaceholder: t("transaction.paymentPlaceholder"),
+                memoPlaceholder: t("transaction.memoPlaceholder"),
+                save: t("transaction.save"),
+                reset: t("transaction.reset"),
+                expense: t("type.expense"),
+                income: t("type.income"),
+              }}
+              onChange={setTransactionDraft}
+              onSubmit={() => void handleSaveTransaction()}
+              onReset={resetTransactionDraft}
+            />
+          ) : null}
+
+          {activeTab === "transactions" ? (
+            <TransactionTable
+              transactions={filteredTransactions}
+              locale={activeLocale}
+              currency={appConfig.currency}
+              labels={{
+                title: t("table.title"),
+                subtitle: t("table.subtitle"),
+                export: t("table.export"),
+                date: t("table.date"),
+                type: t("table.type"),
+                category: t("table.category"),
+                payment: t("table.payment"),
+                memo: t("table.memo"),
+                amount: t("table.amount"),
+                actions: t("table.actions"),
+                empty: t("table.empty"),
+                edit: t("table.edit"),
+                delete: t("table.delete"),
+                income: t("type.income"),
+                expense: t("type.expense"),
+              }}
+              onEdit={handleEditTransaction}
+              onDelete={(transactionId) => void handleDeleteTransaction(transactionId)}
+              onExport={handleExport}
+              exportDisabled={filteredTransactions.length === 0}
+            />
+          ) : null}
+
+          {activeTab === "settings" ? (
+            <div className="settings-grid">
+              <CategoryManager
+                draft={categoryDraft}
+                categories={categories}
+                disabled={!canManageCategories}
+                labels={{
+                  title: t("category.title"),
+                  subtitle: t("category.subtitle"),
+                  name: t("category.name"),
+                  type: t("transaction.type"),
+                  color: t("category.color"),
+                  add: t("category.add"),
+                  none: t("category.none"),
+                  disable: t("category.disable"),
+                  sort: t("category.sort"),
+                  expense: t("type.expense"),
+                  income: t("type.income"),
+                  both: t("type.both"),
+                }}
+                onChange={setCategoryDraft}
+                onSubmit={() => void handleCreateCategory()}
+                onDisable={(categoryId) => void handleDisableCategory(categoryId)}
+              />
+
+              <TagManager
+                draft={tagDraft}
+                tags={tags}
+                disabled={!canManageCategories}
+                labels={{
+                  title: t("tag.title"),
+                  subtitle: t("tag.subtitle"),
+                  name: t("tag.name"),
+                  color: t("tag.color"),
+                  add: t("tag.add"),
+                  none: t("tag.none"),
+                  disable: t("tag.disable"),
+                  sort: t("tag.sort"),
+                }}
+                onChange={setTagDraft}
+                onSubmit={() => void handleCreateTag()}
+                onDisable={(tagId) => void handleDisableTag(tagId)}
+              />
+            </div>
+          ) : null}
         </section>
       </main>
 

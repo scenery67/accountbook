@@ -3,11 +3,13 @@ import type { FiltersState, PeriodPreset } from "../types";
 interface FiltersBarProps {
   filters: FiltersState;
   paymentMethods: string[];
+  tagOptions: string[];
   labels: {
     period: string;
     start: string;
     end: string;
     payment: string;
+    tag: string;
     keyword: string;
     keywordPlaceholder: string;
     all: string;
@@ -19,7 +21,13 @@ interface FiltersBarProps {
   onChange: (next: FiltersState) => void;
 }
 
-export function FiltersBar({ filters, paymentMethods, labels, onChange }: FiltersBarProps) {
+export function FiltersBar({
+  filters,
+  paymentMethods,
+  tagOptions,
+  labels,
+  onChange,
+}: FiltersBarProps) {
   const setField = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) => {
     onChange({ ...filters, [key]: value });
   };
@@ -69,6 +77,20 @@ export function FiltersBar({ filters, paymentMethods, labels, onChange }: Filter
           {paymentMethods.map((method) => (
             <option key={method} value={method}>
               {method}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span className="field-label">{labels.tag}</span>
+        <select
+          value={filters.tag}
+          onChange={(event) => setField("tag", event.target.value)}
+        >
+          <option value="">{labels.all}</option>
+          {tagOptions.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
             </option>
           ))}
         </select>
