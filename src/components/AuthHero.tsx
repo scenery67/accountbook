@@ -1,4 +1,4 @@
-import type { LocaleCode, TFunction } from "../types";
+import type { TFunction } from "../types";
 
 interface AuthHeroProps {
   isAuthenticated: boolean;
@@ -6,10 +6,7 @@ interface AuthHeroProps {
   userName?: string;
   userEmail?: string;
   userPicture?: string;
-  currentLocale: LocaleCode;
   t: TFunction;
-  onLocaleChange: (locale: LocaleCode) => void;
-  extraActions?: React.ReactNode;
   onLogin: () => void;
   onLogout: () => void;
 }
@@ -20,18 +17,10 @@ export function AuthHero({
   userName,
   userEmail,
   userPicture,
-  currentLocale,
   t,
-  onLocaleChange,
-  extraActions,
   onLogin,
   onLogout,
 }: AuthHeroProps) {
-  const languageOptions = [
-    { value: "ko" as const, label: t("lang.ko") },
-    { value: "en" as const, label: t("lang.en") },
-  ];
-
   return (
     <header className="hero">
       <div>
@@ -39,17 +28,6 @@ export function AuthHero({
         <p className="hero-copy">{t("hero.copy")}</p>
       </div>
       <div className="hero-actions">
-        {extraActions}
-        <label className="language-select">
-          <span className="field-label">{t("lang.label")}</span>
-          <select value={currentLocale} onChange={(event) => onLocaleChange(event.target.value as LocaleCode)}>
-            {languageOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
         {!isAuthenticated ? (
           <button className="primary-button" onClick={onLogin} disabled={!isAuthReady}>
             {isAuthReady ? t("auth.signIn") : t("auth.loading")}

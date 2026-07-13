@@ -131,35 +131,7 @@ export default function App() {
         userName={googleAuth.userProfile?.name}
         userEmail={googleAuth.userProfile?.email}
         userPicture={googleAuth.userProfile?.picture}
-        currentLocale={locale}
         t={t}
-        onLocaleChange={setLocale}
-        extraActions={
-          <div className="sheet-menu-wrap">
-            <button
-              className={`ghost-button ${isConnected ? "ghost-button-connected" : ""}`}
-              type="button"
-              onClick={() => setIsSheetMenuOpen((current) => !current)}
-            >
-              {t("sheet.manage")}
-            </button>
-            {isSheetMenuOpen ? (
-              <div className="sheet-dropdown">
-                <SheetPanel
-                  isAuthenticated={isAuthenticated}
-                  isConnected={isConnected}
-                  spreadsheetTitle={workbook.spreadsheetTitle || workbook.spreadsheetId}
-                  spreadsheetUrl={workbook.spreadsheetUrl}
-                  lastSyncAt={workbook.lastSyncAt}
-                  locale={locale}
-                  t={t}
-                  onCreate={() => void workbook.create()}
-                  onConnect={(nextSpreadsheetId) => void workbook.connect(nextSpreadsheetId)}
-                />
-              </div>
-            ) : null}
-          </div>
-        }
         onLogin={googleAuth.login}
         onLogout={handleLogout}
       />
@@ -286,6 +258,36 @@ export default function App() {
 
           {activeTab === "settings" ? (
             <div className="settings-grid">
+              <section className="panel">
+                <div className="panel-header">
+                  <h2>{t("settings.sheet")}</h2>
+                </div>
+                <SheetPanel
+                  isAuthenticated={isAuthenticated}
+                  isConnected={isConnected}
+                  spreadsheetTitle={workbook.spreadsheetTitle || workbook.spreadsheetId}
+                  spreadsheetUrl={workbook.spreadsheetUrl}
+                  lastSyncAt={workbook.lastSyncAt}
+                  locale={locale}
+                  t={t}
+                  onCreate={() => void workbook.create()}
+                  onConnect={(nextSpreadsheetId) => void workbook.connect(nextSpreadsheetId)}
+                />
+              </section>
+
+              <section className="panel">
+                <div className="panel-header">
+                  <h2>{t("settings.language")}</h2>
+                </div>
+                <label className="language-select">
+                  <span className="field-label">{t("lang.label")}</span>
+                  <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleCode)}>
+                    <option value="ko">{t("lang.ko")}</option>
+                    <option value="en">{t("lang.en")}</option>
+                  </select>
+                </label>
+              </section>
+
               <EntityManager
                 kind="category"
                 t={t}
