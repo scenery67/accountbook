@@ -249,7 +249,7 @@ td {
   top: calc(100% + 10px);
   right: 0;
   width: min(420px, 92vw);
-  z-index: 20;
+  z-index: 1000;
 }
 
 .sheet-dropdown .sheet-panel {
