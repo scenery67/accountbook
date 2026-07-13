@@ -138,35 +138,49 @@ export default function App() {
 
       <main className="app-stack">
         <section className="panel tab-panel">
-          <div className="tab-bar">
-            <button
-              className={`tab-button ${activeTab === "dashboard" ? "tab-button-active" : ""}`}
-              type="button"
-              onClick={() => setActiveTab("dashboard")}
-            >
-              {t("tabs.dashboard")}
-            </button>
-            <button
-              className={`tab-button ${activeTab === "input" ? "tab-button-active" : ""}`}
-              type="button"
-              onClick={() => setActiveTab("input")}
-            >
-              {t("tabs.input")}
-            </button>
-            <button
-              className={`tab-button ${activeTab === "transactions" ? "tab-button-active" : ""}`}
-              type="button"
-              onClick={() => setActiveTab("transactions")}
-            >
-              {t("tabs.transactions")}
-            </button>
-            <button
-              className={`tab-button ${activeTab === "settings" ? "tab-button-active" : ""}`}
-              type="button"
-              onClick={() => setActiveTab("settings")}
-            >
-              {t("tabs.settings")}
-            </button>
+          <div className="tab-bar-wrapper">
+            <div className="tab-bar">
+              <button
+                className={`tab-button ${activeTab === "dashboard" ? "tab-button-active" : ""}`}
+                type="button"
+                onClick={() => setActiveTab("dashboard")}
+              >
+                {t("tabs.dashboard")}
+              </button>
+              <button
+                className={`tab-button ${activeTab === "input" ? "tab-button-active" : ""}`}
+                type="button"
+                onClick={() => setActiveTab("input")}
+              >
+                {t("tabs.input")}
+              </button>
+              <button
+                className={`tab-button ${activeTab === "transactions" ? "tab-button-active" : ""}`}
+                type="button"
+                onClick={() => setActiveTab("transactions")}
+              >
+                {t("tabs.transactions")}
+              </button>
+              <button
+                className={`tab-button ${activeTab === "settings" ? "tab-button-active" : ""}`}
+                type="button"
+                onClick={() => setActiveTab("settings")}
+              >
+                {t("tabs.settings")}
+              </button>
+            </div>
+
+            <div className="tab-actions">
+              {!isAuthenticated ? (
+                <button className="primary-button" onClick={googleAuth.login} disabled={!googleAuth.isAuthReady}>
+                  {googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
+                </button>
+              ) : (
+                <button className="ghost-button" onClick={handleLogout}>
+                  {t("auth.signOut")}
+                </button>
+              )}
+            </div>
           </div>
 
           {activeTab === "dashboard" ? (
