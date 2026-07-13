@@ -129,7 +129,7 @@ export default function App() {
         extraActions={
           <div className="sheet-menu-wrap">
             <button
-              className="ghost-button"
+              className={`ghost-button ${isConnected ? "ghost-button-connected" : ""}`}
               type="button"
               onClick={() => setIsSheetMenuOpen((current) => !current)}
             >

@@ -325,6 +325,11 @@ select:focus {
   color: var(--text);
 }
 
+.ghost-button-connected {
+  background: rgba(22, 135, 108, 0.16);
+  color: var(--green);
+}
+
 .primary-button:hover,
 .secondary-button:hover,
 .ghost-button:hover {
