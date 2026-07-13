@@ -2,6 +2,10 @@
 
 A React + TypeScript accountbook that uses Google Sheets as its only data store.
 
+## 🚀 Live Demo
+
+**[https://scenery67.github.io/accountbook/](https://scenery67.github.io/accountbook/)**
+
 ## Stack
 
 - Vite
