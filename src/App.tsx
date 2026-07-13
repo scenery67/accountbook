@@ -20,14 +20,14 @@ import { useCsvExport } from "./hooks/useCsvExport";
 import type { LocaleCode } from "./types";
 
 const LOCALE_STORAGE_KEY = "accountbook.locale";
-type AppTab = "input" | "transactions" | "settings";
+type AppTab = "dashboard" | "input" | "transactions" | "settings";
 
 export default function App() {
   const [locale, setLocale] = useState<LocaleCode>(
     (localStorage.getItem(LOCALE_STORAGE_KEY) as LocaleCode) || "ko"
   );
   const [toastMessage, setToastMessage] = useState("");
-  const [activeTab, setActiveTab] = useState<AppTab>("input");
+  const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   const [isSheetMenuOpen, setIsSheetMenuOpen] = useState(false);
 
   const t = (key: string) => getMessage(locale, key);
@@ -157,66 +157,15 @@ export default function App() {
       />
 
       <main className="app-stack">
-        <section className="dashboard-grid">
-          <section className="panel summary-panel">
-            <div className="panel-header">
-              <div>
-                <h2>{t("dashboard.title")}</h2>
-                <p className="muted">{t("dashboard.subtitle")}</p>
-              </div>
-              <button
-                className="ghost-button"
-                disabled={!isConnected}
-                onClick={() => void workbook.refresh()}
-              >
-                {t("dashboard.refresh")}
-              </button>
-            </div>
-
-            <FiltersBar
-              filters={filteredTotals.filters}
-              paymentMethods={filteredTotals.paymentMethods}
-              t={t}
-              tagOptions={filteredTotals.tagNames}
-              onChange={filteredTotals.setFilters}
-            />
-            <SummaryCards
-              totals={filteredTotals.totals}
-              locale={activeLocale}
-              currency={appConfig.currency}
-              t={t}
-            />
-          </section>
-
-          <CategorySummary
-            entries={filteredTotals.categoryTotals}
-            locale={activeLocale}
-            currency={appConfig.currency}
-            t={t}
-            titleKey="chart.title"
-            subtitleKey="chart.subtitle"
-            emptyKey="chart.empty"
-          />
-
-          <CategorySummary
-            entries={filteredTotals.tagTotals.map((entry) => ({
-              key: entry.key,
-              type: entry.type,
-              category: entry.tag,
-              total: entry.total,
-              color: entry.color,
-            }))}
-            locale={activeLocale}
-            currency={appConfig.currency}
-            t={t}
-            titleKey="tag.summaryTitle"
-            subtitleKey="tag.summarySubtitle"
-            emptyKey="tag.summaryEmpty"
-          />
-        </section>
-
         <section className="panel tab-panel">
           <div className="tab-bar">
+            <button
+              className={`tab-button ${activeTab === "dashboard" ? "tab-button-active" : ""}`}
+              type="button"
+              onClick={() => setActiveTab("dashboard")}
+            >
+              {t("tabs.dashboard")}
+            </button>
             <button
               className={`tab-button ${activeTab === "input" ? "tab-button-active" : ""}`}
               type="button"
@@ -239,6 +188,66 @@ export default function App() {
               {t("tabs.settings")}
             </button>
           </div>
+
+          {activeTab === "dashboard" ? (
+            <section className="dashboard-grid">
+              <section className="panel summary-panel">
+                <div className="panel-header">
+                  <div>
+                    <h2>{t("dashboard.title")}</h2>
+                    <p className="muted">{t("dashboard.subtitle")}</p>
+                  </div>
+                  <button
+                    className="ghost-button"
+                    disabled={!isConnected}
+                    onClick={() => void workbook.refresh()}
+                  >
+                    {t("dashboard.refresh")}
+                  </button>
+                </div>
+
+                <FiltersBar
+                  filters={filteredTotals.filters}
+                  paymentMethods={filteredTotals.paymentMethods}
+                  t={t}
+                  tagOptions={filteredTotals.tagNames}
+                  onChange={filteredTotals.setFilters}
+                />
+                <SummaryCards
+                  totals={filteredTotals.totals}
+                  locale={activeLocale}
+                  currency={appConfig.currency}
+                  t={t}
+                />
+              </section>
+
+              <CategorySummary
+                entries={filteredTotals.categoryTotals}
+                locale={activeLocale}
+                currency={appConfig.currency}
+                t={t}
+                titleKey="chart.title"
+                subtitleKey="chart.subtitle"
+                emptyKey="chart.empty"
+              />
+
+              <CategorySummary
+                entries={filteredTotals.tagTotals.map((entry) => ({
+                  key: entry.key,
+                  type: entry.type,
+                  category: entry.tag,
+                  total: entry.total,
+                  color: entry.color,
+                }))}
+                locale={activeLocale}
+                currency={appConfig.currency}
+                t={t}
+                titleKey="tag.summaryTitle"
+                subtitleKey="tag.summarySubtitle"
+                emptyKey="tag.summaryEmpty"
+              />
+            </section>
+          ) : null}
 
           {activeTab === "input" ? (
             <TransactionForm
