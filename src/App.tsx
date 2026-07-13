@@ -32,6 +32,14 @@ export default function App() {
 
   const t = (key: string) => getMessage(locale, key);
 
+  // KakaoTalk 인앱 브라우저 감지
+  useEffect(() => {
+    const isKakaoTalk = /KAKAOTALK/i.test(navigator.userAgent);
+    if (isKakaoTalk) {
+      setToastMessage("카카오톡 앱 내 브라우저에서는 Google 로그인이 지원되지 않습니다. 외부 브라우저에서 열어주세요.");
+    }
+  }, []);
+
   // Initialize hooks
   const googleAuth = useGoogleAuth({
     locale,
