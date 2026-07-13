@@ -36,7 +36,6 @@ export function AuthHero({
     <header className="hero">
       <div>
         <p className="eyebrow">{t("hero.eyebrow")}</p>
-        <h1>{t("hero.title")}</h1>
         <p className="hero-copy">{t("hero.copy")}</p>
       </div>
       <div className="hero-actions">
