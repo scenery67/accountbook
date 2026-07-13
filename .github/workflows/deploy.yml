@@ -33,6 +33,11 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+          VITE_DEFAULT_SHEET_TITLE: ${{ secrets.VITE_DEFAULT_SHEET_TITLE }}
+          VITE_APP_CURRENCY: ${{ secrets.VITE_APP_CURRENCY }}
+          VITE_APP_LOCALE: ${{ secrets.VITE_APP_LOCALE }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
