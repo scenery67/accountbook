@@ -9,6 +9,9 @@ import { appConfig } from "../lib/config";
 import type { GoogleUserProfile, LocaleCode } from "../types";
 import type { TFunction } from "../types";
 
+const STORAGE_KEY_ACCESS_TOKEN = "accountbook.accessToken";
+const STORAGE_KEY_USER_PROFILE = "accountbook.userProfile";
+
 interface UseGoogleAuthOptions {
   locale: LocaleCode;
   t: TFunction;
@@ -26,10 +29,31 @@ interface UseGoogleAuthReturn {
 
 export function useGoogleAuth(options: UseGoogleAuthOptions): UseGoogleAuthReturn {
   const { locale, t, setToast } = options;
-  const [accessToken, setAccessToken] = useState("");
+  const [accessToken, setAccessToken] = useState(() => {
+    return localStorage.getItem(STORAGE_KEY_ACCESS_TOKEN) ?? "";
+  });
   const [isAuthReady, setIsAuthReady] = useState(false);
-  const [userProfile, setUserProfile] = useState<GoogleUserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<GoogleUserProfile | null>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY_USER_PROFILE);
+    return stored ? JSON.parse(stored) : null;
+  });
   const tokenClientRef = useRef<ReturnType<typeof getGoogleTokenClient> | null>(null);
+
+  useEffect(() => {
+    if (accessToken) {
+      localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, accessToken);
+    } else {
+      localStorage.removeItem(STORAGE_KEY_ACCESS_TOKEN);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
+    if (userProfile) {
+      localStorage.setItem(STORAGE_KEY_USER_PROFILE, JSON.stringify(userProfile));
+    } else {
+      localStorage.removeItem(STORAGE_KEY_USER_PROFILE);
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     if (!appConfig.googleClientId) {
