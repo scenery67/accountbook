@@ -106,3 +106,21 @@ export interface GoogleUserProfile {
   name: string;
   picture: string;
 }
+
+export type TFunction = (key: string) => string;
+
+export interface GoogleTokenClient {
+  requestAccessToken: (options?: { prompt?: string }) => void;
+}
+
+export interface SpreadsheetMeta {
+  spreadsheetId: string;
+  spreadsheetTitle: string;
+  spreadsheetUrl: string;
+}
+
+export interface WorkbookData {
+  transactions: TransactionRecord[];
+  categories: CategoryRecord[];
+  tags: TagRecord[];
+}

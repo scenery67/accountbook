@@ -24,13 +24,3 @@ export function extractSpreadsheetId(value: string): string {
   }
   return /^[a-zA-Z0-9-_]{20,}$/.test(value) ? value : "";
 }
-
-export function labelForType(type: string): string {
-  if (type === "income") {
-    return "Income";
-  }
-  if (type === "both") {
-    return "Shared";
-  }
-  return "Expense";
-}

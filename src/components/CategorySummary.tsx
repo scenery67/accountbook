@@ -1,28 +1,27 @@
 import { formatCurrency } from "../lib/format";
-import type { CategoryAggregate } from "../types";
+import type { CategoryAggregate, TFunction } from "../types";
 
 interface CategorySummaryProps {
   entries: CategoryAggregate[];
   locale: string;
   currency: string;
-  labels: {
-    title: string;
-    subtitle: string;
-    empty: string;
-  };
+  t: TFunction;
+  titleKey: string;
+  subtitleKey: string;
+  emptyKey: string;
 }
 
-export function CategorySummary({ entries, locale, currency, labels }: CategorySummaryProps) {
+export function CategorySummary({ entries, locale, currency, t, titleKey, subtitleKey, emptyKey }: CategorySummaryProps) {
   if (entries.length === 0) {
     return (
       <section className="panel chart-panel">
         <div className="panel-header">
           <div>
-            <h2>{labels.title}</h2>
-            <p className="muted">{labels.subtitle}</p>
+            <h2>{t(titleKey)}</h2>
+            <p className="muted">{t(subtitleKey)}</p>
           </div>
         </div>
-        <div className="empty-state">{labels.empty}</div>
+        <div className="empty-state">{t(emptyKey)}</div>
       </section>
     );
   }
@@ -33,8 +32,8 @@ export function CategorySummary({ entries, locale, currency, labels }: CategoryS
     <section className="panel chart-panel">
       <div className="panel-header">
         <div>
-          <h2>{labels.title}</h2>
-          <p className="muted">{labels.subtitle}</p>
+          <h2>{t(titleKey)}</h2>
+          <p className="muted">{t(subtitleKey)}</p>
         </div>
       </div>
 

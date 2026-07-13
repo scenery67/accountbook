@@ -1,20 +1,14 @@
+import type { LocaleCode, TFunction } from "../types";
+
 interface AuthHeroProps {
   isAuthenticated: boolean;
   isAuthReady: boolean;
   userName?: string;
   userEmail?: string;
   userPicture?: string;
-  currentLocale: "ko" | "en";
-  languageLabel: string;
-  languageOptions: Array<{ value: "ko" | "en"; label: string }>;
-  onLocaleChange: (locale: "ko" | "en") => void;
-  title: string;
-  eyebrow: string;
-  copy: string;
-  signInLabel: string;
-  signOutLabel: string;
-  authLoadingLabel: string;
-  signedInAsLabel: string;
+  currentLocale: LocaleCode;
+  t: TFunction;
+  onLocaleChange: (locale: LocaleCode) => void;
   extraActions?: React.ReactNode;
   onLogin: () => void;
   onLogout: () => void;
@@ -27,32 +21,29 @@ export function AuthHero({
   userEmail,
   userPicture,
   currentLocale,
-  languageLabel,
-  languageOptions,
+  t,
   onLocaleChange,
-  title,
-  eyebrow,
-  copy,
-  signInLabel,
-  signOutLabel,
-  authLoadingLabel,
-  signedInAsLabel,
   extraActions,
   onLogin,
   onLogout,
 }: AuthHeroProps) {
+  const languageOptions = [
+    { value: "ko" as const, label: t("lang.ko") },
+    { value: "en" as const, label: t("lang.en") },
+  ];
+
   return (
     <header className="hero">
       <div>
-        <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
-        <p className="hero-copy">{copy}</p>
+        <p className="eyebrow">{t("hero.eyebrow")}</p>
+        <h1>{t("hero.title")}</h1>
+        <p className="hero-copy">{t("hero.copy")}</p>
       </div>
       <div className="hero-actions">
         {extraActions}
         <label className="language-select">
-          <span className="field-label">{languageLabel}</span>
-          <select value={currentLocale} onChange={(event) => onLocaleChange(event.target.value as "ko" | "en")}>
+          <span className="field-label">{t("lang.label")}</span>
+          <select value={currentLocale} onChange={(event) => onLocaleChange(event.target.value as LocaleCode)}>
             {languageOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -62,20 +53,20 @@ export function AuthHero({
         </label>
         {!isAuthenticated ? (
           <button className="primary-button" onClick={onLogin} disabled={!isAuthReady}>
-            {isAuthReady ? signInLabel : authLoadingLabel}
+            {isAuthReady ? t("auth.signIn") : t("auth.loading")}
           </button>
         ) : (
           <>
             <div className="user-chip">
               {userPicture ? <img className="user-avatar" src={userPicture} alt={userName ?? userEmail ?? "user"} /> : null}
               <div className="user-meta">
-                <span className="user-label">{signedInAsLabel}</span>
+                <span className="user-label">{t("auth.signedInAs")}</span>
                 <strong>{userName || userEmail}</strong>
                 {userName && userEmail ? <span>{userEmail}</span> : null}
               </div>
             </div>
             <button className="ghost-button" onClick={onLogout}>
-              {signOutLabel}
+              {t("auth.signOut")}
             </button>
           </>
         )}

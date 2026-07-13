@@ -1,23 +1,10 @@
-import type { FiltersState, PeriodPreset } from "../types";
+import type { FiltersState, PeriodPreset, TFunction } from "../types";
 
 interface FiltersBarProps {
   filters: FiltersState;
   paymentMethods: string[];
   tagOptions: string[];
-  labels: {
-    period: string;
-    start: string;
-    end: string;
-    payment: string;
-    tag: string;
-    keyword: string;
-    keywordPlaceholder: string;
-    all: string;
-    thisMonth: string;
-    thisWeek: string;
-    last30: string;
-    custom: string;
-  };
+  t: TFunction;
   onChange: (next: FiltersState) => void;
 }
 
@@ -25,7 +12,7 @@ export function FiltersBar({
   filters,
   paymentMethods,
   tagOptions,
-  labels,
+  t,
   onChange,
 }: FiltersBarProps) {
   const setField = <K extends keyof FiltersState>(key: K, value: FiltersState[K]) => {
@@ -35,20 +22,20 @@ export function FiltersBar({
   return (
     <div className="filter-grid">
       <label>
-        <span className="field-label">{labels.period}</span>
+        <span className="field-label">{t("filters.period")}</span>
         <select
           value={filters.preset}
           onChange={(event) => setField("preset", event.target.value as PeriodPreset)}
         >
-          <option value="thisMonth">{labels.thisMonth}</option>
-          <option value="thisWeek">{labels.thisWeek}</option>
-          <option value="last30">{labels.last30}</option>
-          <option value="all">{labels.all}</option>
-          <option value="custom">{labels.custom}</option>
+          <option value="thisMonth">{t("filters.thisMonth")}</option>
+          <option value="thisWeek">{t("filters.thisWeek")}</option>
+          <option value="last30">{t("filters.last30")}</option>
+          <option value="all">{t("filters.all")}</option>
+          <option value="custom">{t("filters.custom")}</option>
         </select>
       </label>
       <label>
-        <span className="field-label">{labels.start}</span>
+        <span className="field-label">{t("filters.start")}</span>
         <input
           type="date"
           value={filters.startDate}
@@ -58,7 +45,7 @@ export function FiltersBar({
         />
       </label>
       <label>
-        <span className="field-label">{labels.end}</span>
+        <span className="field-label">{t("filters.end")}</span>
         <input
           type="date"
           value={filters.endDate}
@@ -68,12 +55,12 @@ export function FiltersBar({
         />
       </label>
       <label>
-        <span className="field-label">{labels.payment}</span>
+        <span className="field-label">{t("filters.payment")}</span>
         <select
           value={filters.paymentMethod}
           onChange={(event) => setField("paymentMethod", event.target.value)}
         >
-          <option value="">{labels.all}</option>
+          <option value="">{t("filters.all")}</option>
           {paymentMethods.map((method) => (
             <option key={method} value={method}>
               {method}
@@ -82,12 +69,12 @@ export function FiltersBar({
         </select>
       </label>
       <label>
-        <span className="field-label">{labels.tag}</span>
+        <span className="field-label">{t("filters.tag")}</span>
         <select
           value={filters.tag}
           onChange={(event) => setField("tag", event.target.value)}
         >
-          <option value="">{labels.all}</option>
+          <option value="">{t("filters.all")}</option>
           {tagOptions.map((tag) => (
             <option key={tag} value={tag}>
               {tag}
@@ -96,11 +83,11 @@ export function FiltersBar({
         </select>
       </label>
       <label className="search-span">
-        <span className="field-label">{labels.keyword}</span>
+        <span className="field-label">{t("filters.keyword")}</span>
         <input
           type="search"
           value={filters.keyword}
-          placeholder={labels.keywordPlaceholder}
+          placeholder={t("filters.keywordPlaceholder")}
           onChange={(event) => setField("keyword", event.target.value)}
         />
       </label>

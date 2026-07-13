@@ -1,27 +1,11 @@
 import { formatCurrency } from "../lib/format";
-import type { TransactionRecord } from "../types";
+import type { TransactionRecord, TFunction } from "../types";
 
 interface TransactionTableProps {
   transactions: TransactionRecord[];
   locale: string;
   currency: string;
-  labels: {
-    title: string;
-    subtitle: string;
-    export: string;
-    date: string;
-    type: string;
-    category: string;
-    payment: string;
-    memo: string;
-    amount: string;
-    actions: string;
-    empty: string;
-    edit: string;
-    delete: string;
-    income: string;
-    expense: string;
-  };
+  t: TFunction;
   onEdit: (transactionId: string) => void;
   onDelete: (transactionId: string) => void;
   onExport: () => void;
@@ -32,7 +16,7 @@ export function TransactionTable({
   transactions,
   locale,
   currency,
-  labels,
+  t,
   onEdit,
   onDelete,
   onExport,
@@ -42,11 +26,11 @@ export function TransactionTable({
     <section className="panel ledger-panel">
       <div className="panel-header">
         <div>
-          <h2>{labels.title}</h2>
-          <p className="muted">{labels.subtitle}</p>
+          <h2>{t("table.title")}</h2>
+          <p className="muted">{t("table.subtitle")}</p>
         </div>
         <button className="ghost-button" onClick={onExport} disabled={exportDisabled}>
-          {labels.export}
+          {t("table.export")}
         </button>
       </div>
 
@@ -54,20 +38,20 @@ export function TransactionTable({
         <table>
           <thead>
             <tr>
-              <th>{labels.date}</th>
-              <th>{labels.type}</th>
-              <th>{labels.category}</th>
-              <th>{labels.payment}</th>
-              <th>{labels.memo}</th>
-              <th className="numeric">{labels.amount}</th>
-              <th>{labels.actions}</th>
+              <th>{t("table.date")}</th>
+              <th>{t("table.type")}</th>
+              <th>{t("table.category")}</th>
+              <th>{t("table.payment")}</th>
+              <th>{t("table.memo")}</th>
+              <th className="numeric">{t("table.amount")}</th>
+              <th>{t("table.actions")}</th>
             </tr>
           </thead>
           <tbody>
             {transactions.length === 0 ? (
               <tr>
                 <td className="table-empty" colSpan={7}>
-                  {labels.empty}
+                  {t("table.empty")}
                 </td>
               </tr>
             ) : (
@@ -76,7 +60,7 @@ export function TransactionTable({
                   <td>{transaction.date}</td>
                   <td>
                     <span className={transaction.type === "income" ? "type-income" : "type-expense"}>
-                      {transaction.type === "income" ? labels.income : labels.expense}
+                      {transaction.type === "income" ? t("type.income") : t("type.expense")}
                     </span>
                   </td>
                   <td>{transaction.category}</td>
@@ -86,10 +70,10 @@ export function TransactionTable({
                   <td>
                     <div className="action-row">
                       <button className="mini-button" type="button" onClick={() => onEdit(transaction.id)}>
-                        {labels.edit}
+                        {t("table.edit")}
                       </button>
                       <button className="mini-button" type="button" onClick={() => onDelete(transaction.id)}>
-                        {labels.delete}
+                        {t("table.delete")}
                       </button>
                     </div>
                   </td>
