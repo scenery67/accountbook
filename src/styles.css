@@ -658,13 +658,6 @@ a:hover {
   }
 
   .hero {
-    padding: 20px;
-    align-items: start;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .hero > div:first-child {
     display: none;
   }
 
