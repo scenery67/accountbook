@@ -272,6 +272,30 @@ export default function App() {
 
           {activeTab === "settings" ? (
             <div className="settings-grid">
+              {isAuthenticated ? (
+                <section className="panel">
+                  <div className="panel-header">
+                    <h2>{t("settings.user")}</h2>
+                  </div>
+                  <div className="user-chip">
+                    {googleAuth.userProfile?.picture ? (
+                      <img
+                        className="user-avatar"
+                        src={googleAuth.userProfile.picture}
+                        alt={googleAuth.userProfile?.name ?? googleAuth.userProfile?.email ?? "user"}
+                      />
+                    ) : null}
+                    <div className="user-meta">
+                      <span className="user-label">{t("auth.signedInAs")}</span>
+                      <strong>{googleAuth.userProfile?.name || googleAuth.userProfile?.email}</strong>
+                      {googleAuth.userProfile?.name && googleAuth.userProfile?.email ? (
+                        <span>{googleAuth.userProfile.email}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
               <section className="panel">
                 <div className="panel-header">
                   <h2>{t("settings.sheet")}</h2>

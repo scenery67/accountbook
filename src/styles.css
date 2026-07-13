@@ -363,13 +363,16 @@ button:disabled {
   align-items: center;
   gap: 12px;
   margin-bottom: 20px;
+  min-height: 54px;
 }
 
 .tab-bar {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab-actions {
@@ -686,9 +689,10 @@ a:hover {
   }
 
   .tab-bar-wrapper {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
     margin-bottom: 16px;
+    min-height: 50px;
   }
 
   .tab-bar {
@@ -864,9 +868,10 @@ a:hover {
   }
 
   .tab-bar-wrapper {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
     margin-bottom: 12px;
+    min-height: 44px;
   }
 
   .tab-bar {
@@ -874,6 +879,8 @@ a:hover {
     flex: 1 1 auto;
     min-width: 0;
     order: 1;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .tab-actions {
@@ -1126,9 +1133,10 @@ a:hover {
   }
 
   .tab-bar-wrapper {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: space-between;
     margin-bottom: 10px;
+    min-height: 40px;
   }
 
   .tab-actions {
