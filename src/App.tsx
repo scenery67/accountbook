@@ -144,6 +144,7 @@ export default function App() {
                 className={`tab-button ${activeTab === "dashboard" ? "tab-button-active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab("dashboard")}
+                title={t("tabs.dashboard")}
               >
                 {t("tabs.dashboard")}
               </button>
@@ -151,6 +152,7 @@ export default function App() {
                 className={`tab-button ${activeTab === "input" ? "tab-button-active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab("input")}
+                title={t("tabs.input")}
               >
                 {t("tabs.input")}
               </button>
@@ -158,6 +160,7 @@ export default function App() {
                 className={`tab-button ${activeTab === "transactions" ? "tab-button-active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab("transactions")}
+                title={t("tabs.transactions")}
               >
                 {t("tabs.transactions")}
               </button>
@@ -165,6 +168,7 @@ export default function App() {
                 className={`tab-button ${activeTab === "settings" ? "tab-button-active" : ""}`}
                 type="button"
                 onClick={() => setActiveTab("settings")}
+                title={t("tabs.settings")}
               >
                 {t("tabs.settings")}
               </button>
@@ -172,11 +176,16 @@ export default function App() {
 
             <div className="tab-actions">
               {!isAuthenticated ? (
-                <button className="primary-button" onClick={googleAuth.login} disabled={!googleAuth.isAuthReady}>
+                <button
+                  className="primary-button"
+                  onClick={googleAuth.login}
+                  disabled={!googleAuth.isAuthReady}
+                  title={googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
+                >
                   {googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
                 </button>
               ) : (
-                <button className="ghost-button" onClick={handleLogout}>
+                <button className="ghost-button" onClick={handleLogout} title={t("auth.signOut")}>
                   {t("auth.signOut")}
                 </button>
               )}
@@ -195,6 +204,7 @@ export default function App() {
                     className="ghost-button"
                     disabled={!isConnected}
                     onClick={() => void workbook.refresh()}
+                    title={t("dashboard.refresh")}
                   >
                     {t("dashboard.refresh")}
                   </button>

@@ -184,6 +184,8 @@ h1 {
 .tab-panel {
   display: grid;
   gap: 20px;
+  min-height: 500px;
+  overflow-y: auto;
 }
 
 .panel-header {
@@ -330,9 +332,19 @@ select:focus {
   color: var(--green);
 }
 
-.primary-button:hover,
-.secondary-button:hover,
+.primary-button:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(250, 123, 85, 0.24);
+}
+
+.secondary-button:hover {
+  background: rgba(250, 123, 85, 0.24);
+  transform: translateY(-1px);
+}
+
 .ghost-button:hover {
+  background: rgba(36, 24, 16, 0.12);
   transform: translateY(-1px);
 }
 
@@ -391,9 +403,17 @@ button:disabled {
   font-weight: 700;
 }
 
+.tab-button:hover:not(.tab-button-active) {
+  background: rgba(36, 24, 16, 0.12);
+}
+
 .tab-button-active {
   background: rgba(250, 123, 85, 0.16);
   color: var(--accent-deep);
+}
+
+.tab-button-active:hover {
+  background: rgba(250, 123, 85, 0.24);
 }
 
 .stat-card {
@@ -644,6 +664,7 @@ a:hover {
 
   .tab-panel {
     gap: 16px;
+    min-height: 450px;
   }
 
   .tab-button {
