@@ -719,13 +719,29 @@ a:hover {
 
   .tab-panel {
     gap: 12px;
+    padding-bottom: 76px;
   }
 
   .tab-bar-wrapper {
     flex-wrap: nowrap;
     justify-content: space-between;
-    margin-bottom: 16px;
-    min-height: 50px;
+    margin-bottom: 0;
+    min-height: auto;
+  }
+
+  .tab-bar-wrapper--bottom {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: var(--paper);
+    border-top: 1px solid var(--line);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
   }
 
   .tab-bar {

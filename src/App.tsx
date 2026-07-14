@@ -17,6 +17,7 @@ import { useCategories } from "./hooks/useCategories";
 import { useTags } from "./hooks/useTags";
 import { useFilteredTotals } from "./hooks/useFilteredTotals";
 import { useCsvExport } from "./hooks/useCsvExport";
+import { useIsMobile } from "./hooks/useIsMobile";
 import type { LocaleCode } from "./types";
 
 const LOCALE_STORAGE_KEY = "accountbook.locale";
@@ -29,6 +30,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState("");
   const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
   const [isSheetMenuOpen, setIsSheetMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const t = (key: string) => getMessage(locale, key);
 
@@ -125,20 +127,22 @@ export default function App() {
 
   return (
     <div className="page-shell">
-      <AuthHero
-        isAuthenticated={isAuthenticated}
-        isAuthReady={googleAuth.isAuthReady}
-        userName={googleAuth.userProfile?.name}
-        userEmail={googleAuth.userProfile?.email}
-        userPicture={googleAuth.userProfile?.picture}
-        t={t}
-        onLogin={googleAuth.login}
-        onLogout={handleLogout}
-      />
+      {!isMobile && (
+        <AuthHero
+          isAuthenticated={isAuthenticated}
+          isAuthReady={googleAuth.isAuthReady}
+          userName={googleAuth.userProfile?.name}
+          userEmail={googleAuth.userProfile?.email}
+          userPicture={googleAuth.userProfile?.picture}
+          t={t}
+          onLogin={googleAuth.login}
+          onLogout={handleLogout}
+        />
+      )}
 
       <main className="app-stack">
         <section className="panel tab-panel">
-          <div className="tab-bar-wrapper">
+          <div className={`tab-bar-wrapper ${isMobile ? "tab-bar-wrapper--bottom" : ""}`}>
             <div className="tab-bar">
               <button
                 className={`tab-button ${activeTab === "dashboard" ? "tab-button-active" : ""}`}
@@ -174,22 +178,24 @@ export default function App() {
               </button>
             </div>
 
-            <div className="tab-actions">
-              {!isAuthenticated ? (
-                <button
-                  className="primary-button"
-                  onClick={googleAuth.login}
-                  disabled={!googleAuth.isAuthReady}
-                  title={googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
-                >
-                  {googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
-                </button>
-              ) : (
-                <button className="ghost-button" onClick={handleLogout} title={t("auth.signOut")}>
-                  {t("auth.signOut")}
-                </button>
-              )}
-            </div>
+            {isMobile && (
+              <div className="tab-actions">
+                {!isAuthenticated ? (
+                  <button
+                    className="primary-button"
+                    onClick={googleAuth.login}
+                    disabled={!googleAuth.isAuthReady}
+                    title={googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
+                  >
+                    {googleAuth.isAuthReady ? t("auth.signIn") : t("auth.loading")}
+                  </button>
+                ) : (
+                  <button className="ghost-button" onClick={handleLogout} title={t("auth.signOut")}>
+                    {t("auth.signOut")}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {activeTab === "dashboard" ? (
